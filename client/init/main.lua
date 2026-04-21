@@ -12,6 +12,8 @@ local volumes = {
 radioEnabled, radioPressed, mode = true, false, GetConvarInt('voice_defaultVoiceMode', 2)
 radioData = {}
 callData = {}
+stationAudienceMonitorTargets = {}
+stationAudienceTransmitTargets = {}
 submixIndicies = {}
 --- function setVolume
 --- Toggles the players volume
@@ -213,6 +215,24 @@ function addVoiceTargets(...)
 	end
 end
 
+function rebuildVoiceTargetPlayers()
+	MumbleClearVoiceTargetPlayers(voiceTarget)
+	addVoiceTargets((radioPressed and isRadioEnabled()) and radioData or {}, callData, stationAudienceTransmitTargets)
+	if isStationAudienceTraceEnabled() then
+		local radioCount, callCount, stationCount = 0, 0, 0
+		for _ in pairs((radioPressed and isRadioEnabled()) and radioData or {}) do
+			radioCount = radioCount + 1
+		end
+		for _ in pairs(callData or {}) do
+			callCount = callCount + 1
+		end
+		for _ in pairs(stationAudienceTransmitTargets or {}) do
+			stationCount = stationCount + 1
+		end
+		stationAudienceTrace('client-voice-target', 'rebuild radio=%s call=%s station=%s pressed=%s radioEnabled=%s', tostring(radioCount), tostring(callCount), tostring(stationCount), tostring(radioPressed), tostring(isRadioEnabled()))
+	end
+end
+
 --- function playMicClicks
 ---plays the mic click if the player has them enabled.
 ---@param clickType boolean whether to play the 'on' or 'off' click.
@@ -318,6 +338,12 @@ function handleRadioAndCallInit()
 
 	for tgt, enabled in pairs(callData) do
 		if tgt ~= playerServerId then
+			toggleVoice(tgt, true, 'call')
+		end
+	end
+
+	for tgt, enabled in pairs(stationAudienceMonitorTargets) do
+		if enabled and tgt ~= playerServerId then
 			toggleVoice(tgt, true, 'call')
 		end
 	end

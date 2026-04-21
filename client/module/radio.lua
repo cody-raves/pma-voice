@@ -67,7 +67,7 @@ function addPlayerToRadio(plySource, plyRadioName)
 	logger.info('[radio] %s joined radio %s %s', plySource, radioChannel,
 		radioPressed and " while we were talking, adding them to targets" or "")
 	if radioPressed then
-		addVoiceTargets(radioData, callData)
+		addVoiceTargets(radioData, callData, stationAudienceTransmitTargets)
 	end
 end
 RegisterNetEvent('pma-voice:addPlayerToRadio', addPlayerToRadio)
@@ -89,12 +89,12 @@ function removePlayerFromRadio(plySource)
 		})
 		radioNames = {}
 		radioData = {}
-		addVoiceTargets(callData)
+		rebuildVoiceTargetPlayers()
 	else
 		toggleVoice(plySource, false, 'radio')
 		if radioPressed then
 			logger.info('[radio] %s left radio %s while we were talking, updating targets.', plySource, radioChannel)
-			addVoiceTargets(radioData, callData)
+			addVoiceTargets(radioData, callData, stationAudienceTransmitTargets)
 		else
 			logger.info('[radio] %s has left radio %s', plySource, radioChannel)
 		end
@@ -193,7 +193,7 @@ RegisterCommand('+radiotalk', function()
 	if not radioPressed then
 		if radioChannel > 0 then
 			logger.info('[radio] Start broadcasting, update targets and notify server.')
-			addVoiceTargets(radioData, callData)
+			addVoiceTargets(radioData, callData, stationAudienceTransmitTargets)
 			TriggerServerEvent('pma-voice:setTalkingOnRadio', true)
 			radioPressed = true
 			local shouldPlayAnimation = isRadioAnimEnabled()
@@ -245,8 +245,7 @@ end, false)
 RegisterCommand('-radiotalk', function()
 	if radioChannel > 0 and radioPressed then
 		radioPressed = false
-		MumbleClearVoiceTargetPlayers(voiceTarget)
-		addVoiceTargets(callData)
+		rebuildVoiceTargetPlayers()
 		TriggerEvent("pma-voice:radioActive", false)
 		LocalPlayer.state:set("radioActive", false, true);
 		playMicClicks(false)
@@ -309,4 +308,3 @@ local function removeRadioDisableBit(bit)
 	LocalPlayer.state:set("disableRadio", curVal, true)
 end
 exports("removeRadioDisableBit", removeRadioDisableBit)
-

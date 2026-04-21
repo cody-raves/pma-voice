@@ -81,6 +81,18 @@ logger = {
 	end,
 }
 
+function isStationAudienceTraceEnabled()
+	return GetConvarInt('voice_traceStationAudience', 0) == 1
+end
+
+function stationAudienceTrace(scope, message, ...)
+	if not isStationAudienceTraceEnabled() then
+		return
+	end
+	local prefix = ('[station_audience][%s] '):format(tostring(scope or 'trace'))
+	print((prefix .. tostring(message or '')):format(...))
+end
+
 
 function tPrint(tbl, indent)
 	indent = indent or 0
