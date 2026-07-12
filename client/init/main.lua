@@ -140,13 +140,17 @@ function toggleVoice(plySource, enabled, moduleType)
 	logger.verbose('[main] Updating %s to talking: %s with submix %s', plySource, enabled, moduleType)
 	local distance = currentTargets[plySource]
 	if enabled and (not distance or distance > 4.0) then
-		print(volumes[moduleType])
-		MumbleSetVolumeOverrideByServerId(plySource, enabled and volumes[moduleType])
+		local volumeType = moduleType == 'station' and 'call' or moduleType
+		local appliedVolume = tonumber(volumes[volumeType]) or 1.0
+		if moduleType == 'station' then
+			appliedVolume = appliedVolume * math.max(0.0, math.min(1.0, tonumber(stationAudienceVolume) or 1.0))
+		end
+		MumbleSetVolumeOverrideByServerId(plySource, appliedVolume)
 		if GetConvarInt('voice_enableSubmix', 1) == 1 then
-			if moduleType then
+			if volumeType then
 				disableSubmixReset[plySource] = true
-				if submixIndicies[moduleType] then
-					MumbleSetSubmixForServerId(plySource, submixIndicies[moduleType])
+				if submixIndicies[volumeType] then
+					MumbleSetSubmixForServerId(plySource, submixIndicies[volumeType])
 				end
 			else
 				restoreDefaultSubmix(plySource)
@@ -184,6 +188,11 @@ function resyncVolume(volumeType, newVolume)
 		updateVolumes(radioData, newVolume)
 	elseif volumeType == "call" then
 		updateVolumes(callData, newVolume)
+		for serverId, enabled in pairs(stationAudienceMonitorTargets or {}) do
+			if enabled and serverId ~= playerServerId then
+				MumbleSetVolumeOverrideByServerId(serverId, newVolume * math.max(0.0, math.min(1.0, tonumber(stationAudienceVolume) or 1.0)))
+			end
+		end
 	end
 end
 
@@ -344,7 +353,7 @@ function handleRadioAndCallInit()
 
 	for tgt, enabled in pairs(stationAudienceMonitorTargets) do
 		if enabled and tgt ~= playerServerId then
-			toggleVoice(tgt, true, 'call')
+			toggleVoice(tgt, true, 'station')
 		end
 	end
 end

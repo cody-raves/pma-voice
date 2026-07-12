@@ -1,6 +1,7 @@
 local stationAudienceSubscriptions = {}
 local stationAudienceSpeakerData = {}
 local stationAudienceListenerData = {}
+stationAudienceVolume = math.max(0.0, math.min(1.0, tonumber(stationAudienceVolume) or 1.0))
 
 local function countEnabledTargets(tbl)
 	local count = 0
@@ -61,14 +62,14 @@ local function rebuildStationAudienceMonitorTargets()
 	for sid, _ in pairs(stationAudienceMonitorTargets) do
 		if not nextTargets[sid] then
 			if not radioData[sid] and not callData[sid] then
-				toggleVoice(sid, false, 'call')
+				toggleVoice(sid, false, 'station')
 			end
 		end
 	end
 
 	for sid, _ in pairs(nextTargets) do
 		if not stationAudienceMonitorTargets[sid] then
-			toggleVoice(sid, true, 'call')
+			toggleVoice(sid, true, 'station')
 		end
 	end
 
@@ -166,6 +167,23 @@ end
 
 exports('setStationAudienceListener', setStationAudienceListener)
 exports('SetStationAudienceListener', setStationAudienceListener)
+
+local function setStationAudienceVolume(volume)
+	local nextVolume = math.max(0.0, math.min(1.0, tonumber(volume) or 1.0))
+	if math.abs(nextVolume - stationAudienceVolume) < 0.001 then
+		return
+	end
+	stationAudienceVolume = nextVolume
+	for sid, enabled in pairs(stationAudienceMonitorTargets or {}) do
+		if enabled and sid ~= playerServerId then
+			toggleVoice(sid, true, 'station')
+		end
+	end
+	stationAudienceTrace('client-volume', 'listener station volume=%s', tostring(stationAudienceVolume))
+end
+
+exports('setStationAudienceVolume', setStationAudienceVolume)
+exports('SetStationAudienceVolume', setStationAudienceVolume)
 
 AddEventHandler('onClientResourceStart', function(resource)
 	if resource ~= GetCurrentResourceName() then
